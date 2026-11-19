@@ -2,9 +2,11 @@ import { HOUSES, validateBooking, validDate, moscowToday } from './booking.js';
 import { telegram, configured } from './delivery.js';
 const steps = ['house','checkIn','checkOut','guests','name','phone','consent'];
 const prompts = {house:'Какой дом выберете?\n1 — Белый дом, 200 м², до 8 гостей\n2 — Уединённый, 100 м², до 4 гостей\n3 — Дом с баней, 65 м², до 4 гостей\n\nОтправьте 1, 2 или 3.',checkIn:'Дата заезда? Формат: ГГГГ-ММ-ДД.',checkOut:'Дата выезда? Формат: ГГГГ-ММ-ДД.',guests:'Сколько будет гостей? Укажите число, включая детей.',name:'Как к вам обращаться?',phone:'Укажите телефон в формате +79027850002.',consent:'Для ответа на заявку имя, телефон, даты и сведения о размещении будут отправлены администратору на почту и в Telegram. Подробнее: https://zaliv-retreat.ru/privacy.html\n\nОтправьте «Согласен», если согласны на обработку этих данных, или /cancel для отмены.'};
-export function startBot(outbox) {
+export function startBot(outbox, options = {}) {
+  const api = options.api || telegram;
+  const ready = options.ready || configured;
   const sessions = new Map(); let stopped = false; let offset = 0;
-  const send = (id,text) => telegram('sendMessage',{chat_id:id,text});
+  const send = (id,text) => api('sendMessage',{chat_id:id,text});
   async function handle(message) {
     if (!message?.text || message.chat.type !== 'private') return;
     const id = message.chat.id; const text = message.text.trim();
@@ -12,7 +14,7 @@ export function startBot(outbox) {
     if (text === '/cancel') { sessions.delete(id); await send(id,'Заявка отменена. Начать заново: /book'); return; }
     if (text === '/start' || text === '/help') { await send(id,'Добро пожаловать в Залив-Ретрит 🌲\nТри авторских дома в хвойном лесу рядом с Горьковским водохранилищем.\n\n/book — оставить заявку\n/cancel — отменить заполнение\n/id — узнать номер чата\n\nСайт: https://zaliv-retreat.ru\nТелефон: +7 902 785-00-02\nБронирование подтверждает администратор.'); return; }
     if (text === '/book') {
-      if (!configured()) { await send(id,'Приём заявок в боте пока подключается. Позвоните +7 902 785-00-02 или напишите vi-kate@mail.ru.'); return; }
+      if (!ready()) { await send(id,'Приём заявок в боте пока подключается. Позвоните +7 902 785-00-02 или напишите vi-kate@mail.ru.'); return; }
       if (sessions.size >= 1000 && !sessions.has(id)) { await send(id,'Сервис временно занят. Позвоните +7 902 785-00-02.'); return; }
       sessions.set(id,{step:0,data:{},updated:Date.now()}); await send(id,prompts.house); return;
     }
@@ -54,7 +56,7 @@ export function startBot(outbox) {
   async function poll() {
     while (!stopped) {
       try {
-        const messages = await telegram('getUpdates',{offset,timeout:25,allowed_updates:['message']});
+        const messages = await api('getUpdates',{offset,timeout:25,allowed_updates:['message']});
         for (const update of messages) {
           // A failed reply must not cause duplicate booking creation on the next poll.
           offset = update.update_id + 1;
@@ -63,6 +65,6 @@ export function startBot(outbox) {
       } catch { console.error('Bot polling failed; retrying'); await new Promise(resolve => setTimeout(resolve,5000)); }
     }
   }
-  void poll();
-  return () => { stopped = true; clearInterval(cleanup); sessions.clear(); };
+  if (options.poll !== false) void poll();
+  return {handle, stop() { stopped = true; clearInterval(cleanup); sessions.clear(); }};
 }
