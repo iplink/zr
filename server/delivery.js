@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer';
 import { mkdir, readdir, readFile, writeFile, rename, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { bookingText } from './booking.js';
+import { formatBookingDate } from '../public/dates.js';
 export function configured(env = process.env) {
   return ['SMTP_HOST','SMTP_USER','SMTP_PASS','SMTP_FROM','EMAIL_TO','TELEGRAM_BOT_TOKEN','TELEGRAM_ADMIN_CHAT_ID'].every(key => Boolean(env[key]?.trim()));
 }
@@ -34,7 +35,7 @@ export async function createOutbox(options = {}) {
         for (const channel of ['email','telegram']) {
           if (record[channel]) continue;
           try {
-            if (channel === 'email') await transport.sendMail({from:process.env.SMTP_FROM,to:process.env.EMAIL_TO,subject:`Заявка: ${record.booking.checkIn} · Залив-Ретрит`,text,messageId:`<${record.booking.id}@zaliv-retreat.ru>`});
+            if (channel === 'email') await transport.sendMail({from:process.env.SMTP_FROM,to:process.env.EMAIL_TO,subject:`${record.booking.kind === 'wishes' ? 'Пожелания к заявке' : 'Заявка'}: ${formatBookingDate(record.booking.checkIn)} · Залив-Ретрит`,text,messageId:`<${record.booking.id}@zaliv-retreat.ru>`});
             else await sendTelegram('sendMessage',{chat_id:process.env.TELEGRAM_ADMIN_CHAT_ID,text});
             record[channel] = true;
             await save(file,record);

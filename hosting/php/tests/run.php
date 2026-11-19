@@ -14,15 +14,26 @@ try {
     run_test('valid booking, UTF-8 and Russian phone',function () { $booking=zr_validate(example_booking()); check($booking['guests']===8,'Guest normalization'); check(zr_length($booking['name'])===4,'UTF-8 length'); check(str_contains(zr_text($booking),'Белый дом'),'House name'); });
     run_test('capacity and known house validation',function () { foreach(['bath','secluded'] as $house) check(rejects([...example_booking(),'house'=>$house,'guests'=>5]),'Capacity'); foreach(['constructor','unknown'] as $house) check(rejects([...example_booking(),'house'=>$house]),'Unknown house'); });
     run_test('dates, consent, phone and header injection rejection',function () { foreach([['checkIn'=>'2020-01-01'],['checkOut'=>'2099-05-19'],['checkIn'=>'2099-02-30'],['phone'=>'123'],['consent'=>'true'],['name'=>"Анна\r\nBcc: x"]] as $change) check(rejects([...example_booking(),...$change]),'Invalid booking accepted'); });
+    run_test('dotted date input and notification formatting',function () { check(zr_parse_date('05.12.2027')==='2027-12-05','Day/month order');check(zr_parse_date('29.02.2028')==='2028-02-29','Leap year');foreach(['29.02.2027','31.04.2027','2027-12-05'] as $value)check(zr_parse_date($value)===null,'Invalid date accepted');check(zr_format_date('2027-12-05')==='05.12.2027','Display format');check(str_contains(zr_text(zr_validate(example_booking())),'Заезд: 20.05.2099'),'Notification format'); });
     run_test('complete bot conversation and consent',function () use($config) {
         $session=[]; $id=1;
-        foreach(['/book','2','2099-05-20','2099-05-22','4','Анна','+79027850002'] as $text) { $result=zr_bot_step($session,$text,'123',$id++,$config); check($result['booking']===null,'Premature booking'); $session=$result['session']; }
+        foreach(['/book','2','20.05.2099','22.05.2099','4','Анна','+79027850002'] as $text) { $result=zr_bot_step($session,$text,'123',$id++,$config); check($result['booking']===null,'Premature booking'); $session=$result['session']; }
         check(str_contains($result['reply'],'Проверьте заявку'),'No summary');
-        $result=zr_bot_step($session,'Согласна','123',$id,$config); check($result['booking']['house']==='secluded','House'); check($result['booking']['id']==='tg-123-'.$id,'Deterministic id'); check($result['booking']['source']==='telegram','Source');
+        check(str_contains($result['reply'],'Заезд: 20.05.2099'),'Summary format');
+        $result=zr_bot_step($session,'Согласна','123',$id,$config); check($result['booking']['house']==='secluded','House'); check($result['booking']['id']==='tg-123-'.$id,'Deterministic id'); check($result['booking']['source']==='telegram','Source');check($result['booking']['checkIn']==='2099-05-20','Storage format');
+        check(str_contains($result['reply'],'пожелания'),'Missing wishes question after acceptance');
+        $initial=$result['booking'];$result=zr_bot_step($result['session'],'Нужна детская кроватка','123',++$id,$config);
+        check($result['booking']['kind']==='wishes','Not an addition');check($result['booking']['parentId']===$initial['id'],'Original booking link');check($result['booking']['id']!==$initial['id'],'Addition needs own delivery ID');check(str_contains(zr_text($result['booking']),'Нужна детская кроватка'),'Wishes missing from notification');
+    });
+    run_test('wishes may be skipped without cancelling the accepted request',function () use($config) {
+        $s=[];$id=1;foreach(['/book','1','20.05.2099','22.05.2099','2','Анна','+79027850002','Согласен'] as $text){$r=zr_bot_step($s,$text,'123',$id++,$config);$s=$r['session'];}
+        $r=zr_bot_step($s,'/skip','123',$id,$config);check($r['booking']===null,'Skip created booking');check(!isset($r['session']['step']),'Skip kept state');
+        $r=zr_bot_step($s,'/cancel','123',$id,$config);check(str_contains($r['reply'],'Основная заявка уже принята'),'Claimed accepted booking was cancelled');
+        $r=zr_bot_step($s,str_repeat('x',1001),'123',$id,$config);check($r['booking']===null && $r['session']['step']===7,'Overlong wishes advanced state');
     });
     run_test('bot preserves step on invalid answer and honours cancel',function () use($config) {
         $s=zr_bot_step([],'/book','123',1,$config)['session'];$s=zr_bot_step($s,'3','123',2,$config)['session'];
-        $r=zr_bot_step($s,'2020-01-01','123',3,$config);check($r['session']['step']===1,'Invalid date advanced step');check(str_contains($r['reply'],'прошлом'),'Error not explained');
+        $r=zr_bot_step($s,'01.01.2020','123',3,$config);check($r['session']['step']===1,'Invalid date advanced step');check(str_contains($r['reply'],'прошлом'),'Error not explained');
         $r=zr_bot_step($s,'/cancel','123',4,$config);check(!isset($r['session']['step']),'Cancel kept state');
     });
     run_test('queue survives sender failure and retries only missing channel',function () use($config) {

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { formatBookingDate } from '../public/dates.js';
 export const HOUSES = { white: { name: 'Белый дом', capacity: 8 }, secluded: { name: 'Уединённый', capacity: 4 }, bath: { name: 'Дом с баней', capacity: 4 } };
 export function moscowToday() { return new Intl.DateTimeFormat('en-CA', { timeZone:'Europe/Moscow', year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date()); }
 export function validDate(value) {
@@ -21,5 +22,5 @@ export function validateBooking(data, today = moscowToday()) {
   return {id:randomUUID(), house:data.house, checkIn:data.checkIn, checkOut:data.checkOut, guests, name, phone, comment, consent:true, createdAt:new Date().toISOString()};
 }
 export function bookingText(booking) {
-  return ['Новая заявка · Залив-Ретрит', `Номер: ${booking.id}`, `Источник: ${booking.source === 'telegram' ? 'Telegram-бот' : 'Сайт'}`, `Дом: ${HOUSES[booking.house].name}`, `Заезд: ${booking.checkIn}`, `Выезд: ${booking.checkOut}`, `Гостей: ${booking.guests}`, `Имя: ${booking.name}`, `Телефон: ${booking.phone}`, `Пожелания: ${booking.comment || '—'}`, 'Согласие на обработку данных: получено', 'Необходимо связаться с гостем и подтвердить условия.'].join('\n');
+  return [booking.kind === 'wishes' ? 'Пожелания к заявке · Залив-Ретрит' : 'Новая заявка · Залив-Ретрит', `Номер заявки: ${booking.parentId || booking.id}`, ...(booking.parentId ? [`Номер дополнения: ${booking.id}`] : []), `Источник: ${booking.source === 'telegram' ? 'Telegram-бот' : 'Сайт'}`, `Дом: ${HOUSES[booking.house].name}`, `Заезд: ${formatBookingDate(booking.checkIn)}`, `Выезд: ${formatBookingDate(booking.checkOut)}`, `Гостей: ${booking.guests}`, `Имя: ${booking.name}`, `Телефон: ${booking.phone}`, `Пожелания: ${booking.comment || '—'}`, 'Согласие на обработку данных: получено', 'Необходимо связаться с гостем и подтвердить условия.'].join('\n');
 }

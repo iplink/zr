@@ -51,6 +51,14 @@ function zr_valid_date(mixed $date): bool {
     [$year,$month,$day] = array_map('intval', explode('-', $date));
     return checkdate($month,$day,$year);
 }
+function zr_parse_date(string $value): ?string {
+    if (!preg_match('/^(\d{2})\.(\d{2})\.(\d{4})$/D',trim($value),$parts)) return null;
+    $iso = $parts[3].'-'.$parts[2].'-'.$parts[1];
+    return zr_valid_date($iso) ? $iso : null;
+}
+function zr_format_date(string $iso): string {
+    return preg_match('/^(\d{4})-(\d{2})-(\d{2})$/D',$iso,$parts) ? $parts[3].'.'.$parts[2].'.'.$parts[1] : $iso;
+}
 function zr_length(string $text): int { return preg_match_all('/./us', $text) ?: 0; }
 function zr_valid_phone(string $phone): bool {
     return (bool) preg_match('/^[+\d\s()\-]{10,24}$/D', $phone) && (bool) preg_match('/^[78]\d{10}$/D', preg_replace('/\D/', '', $phone));
@@ -71,7 +79,7 @@ function zr_validate(array $data, ?string $today = null): array {
     return ['id'=>'web-'.bin2hex(random_bytes(16)), 'house'=>$house, 'checkIn'=>$data['checkIn'], 'checkOut'=>$data['checkOut'], 'guests'=>$guests, 'name'=>$name, 'phone'=>$phone, 'comment'=>$comment, 'consent'=>true, 'createdAt'=>gmdate('c'), 'source'=>'website'];
 }
 function zr_text(array $booking): string {
-    return implode("\n", ['Новая заявка · Залив-Ретрит', 'Номер: '.$booking['id'], 'Источник: '.($booking['source']==='telegram'?'Telegram-бот':'Сайт'), 'Дом: '.ZR_HOUSES[$booking['house']]['name'], 'Заезд: '.$booking['checkIn'], 'Выезд: '.$booking['checkOut'], 'Гостей: '.$booking['guests'], 'Имя: '.$booking['name'], 'Телефон: '.$booking['phone'], 'Пожелания: '.($booking['comment'] ?: '—'), 'Согласие на обработку данных: получено', 'Необходимо связаться с гостем и подтвердить условия.']);
+    return implode("\n", [($booking['kind'] ?? '') === 'wishes' ? 'Пожелания к заявке · Залив-Ретрит' : 'Новая заявка · Залив-Ретрит', 'Номер заявки: '.($booking['parentId'] ?? $booking['id']), ...(isset($booking['parentId']) ? ['Номер дополнения: '.$booking['id']] : []), 'Источник: '.($booking['source']==='telegram'?'Telegram-бот':'Сайт'), 'Дом: '.ZR_HOUSES[$booking['house']]['name'], 'Заезд: '.zr_format_date($booking['checkIn']), 'Выезд: '.zr_format_date($booking['checkOut']), 'Гостей: '.$booking['guests'], 'Имя: '.$booking['name'], 'Телефон: '.$booking['phone'], 'Пожелания: '.($booking['comment'] ?: '—'), 'Согласие на обработку данных: получено', 'Необходимо связаться с гостем и подтвердить условия.']);
 }
 function zr_enqueue(array $config, array $booking): void {
     if (!zr_ready($config)) throw new RuntimeException('NOT_CONFIGURED');
@@ -91,7 +99,7 @@ function zr_email(array $config, array $booking): void {
     $mail->SMTPAuth = true; $mail->Username = $config['smtp_user']; $mail->Password = $config['smtp_password'];
     $mail->SMTPSecure = $mail->Port === 465 ? 'ssl' : 'tls'; $mail->Timeout = 8; $mail->getSMTPInstance()->Timelimit = 10;
     $mail->CharSet = 'UTF-8'; $mail->setFrom($config['smtp_from'], 'Залив-Ретрит'); $mail->addAddress($config['email_to']);
-    $mail->Subject = 'Заявка: '.$booking['checkIn'].' · Залив-Ретрит';
+    $mail->Subject = (($booking['kind'] ?? '') === 'wishes' ? 'Пожелания к заявке: ' : 'Заявка: ').zr_format_date($booking['checkIn']).' · Залив-Ретрит';
     $mail->MessageID = '<'.$booking['id'].'@zaliv-retreat.ru>'; $mail->Body = zr_text($booking); $mail->send();
 }
 function zr_telegram(array $config, string $method, array $body): mixed {
