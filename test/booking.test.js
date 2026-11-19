@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { validateBooking, bookingText } from '../server/booking.js';
+const valid = {house:'white',checkIn:'2027-02-10',checkOut:'2027-02-12',guests:'8',name:'Анна',phone:'+7 (902) 785-00-02',consent:true};
+test('accepts a valid booking and normalizes guests',()=>{ const result=validateBooking(valid,'2027-01-01'); assert.equal(result.guests,8); assert.match(result.id,/^[\da-f-]{36}$/); assert.match(bookingText(result),/Белый дом/); });
+test('enforces capacity for every house',()=>{ for (const house of ['secluded','bath']) assert.throws(()=>validateBooking({...valid,house,guests:5},'2027-01-01'),/до 4/); assert.throws(()=>validateBooking({...valid,guests:9},'2027-01-01')); });
+test('rejects reversed, past, malformed and nonexistent dates',()=>{ for (const changes of [{checkOut:valid.checkIn},{checkIn:'2026-01-01'},{checkIn:'2027-02-30'},{checkIn:'tomorrow'}]) assert.throws(()=>validateBooking({...valid,...changes},'2027-01-01')); });
+test('requires explicit consent and a valid phone',()=>{ for (const changes of [{consent:false},{consent:'true'},{phone:'123'},{name:'A'},{name:'Анна\r\nBcc: x'},{comment:'x'.repeat(1001)}]) assert.throws(()=>validateBooking({...valid,...changes},'2027-01-01')); });
+test('does not accept arrays, null or fractional guest counts',()=>{ for (const data of [null,[],{...valid,guests:1.5}]) assert.throws(()=>validateBooking(data,'2027-01-01')); });
+test('rejects inherited object properties as house names',()=>{ for (const house of ['toString','constructor','__proto__']) assert.throws(()=>validateBooking({...valid,house},'2027-01-01')); });

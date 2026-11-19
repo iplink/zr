@@ -1,0 +1,9 @@
+{
+  "name": "zaliv-retreat",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": { "start": "node --env-file-if-exists=.env server/index.js", "test": "node --test", "check": "node --check server/index.js && node --check server/booking.js && node --check server/bot.js && node --check public/app.js" },
+  "dependencies": { "nodemailer": "^7.0.10" }
+}
