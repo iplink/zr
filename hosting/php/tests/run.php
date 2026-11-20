@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require dirname(__DIR__).'/private/bot.php';
+require dirname(__DIR__).'/private/max.php';
 $passed = 0;
 function check(bool $condition,string $message): void { if(!$condition) throw new RuntimeException($message); }
 function example_booking(): array { return ['house'=>'white','checkIn'=>'2099-05-20','checkOut'=>'2099-05-22','guests'=>'8','name'=>'Анна','phone'=>'+7 (902) 785-00-02','consent'=>true]; }
@@ -49,6 +50,23 @@ try {
         $booking=zr_validate(example_booking());zr_enqueue($config,$booking);$file=zr_directory($config,'queue').'/'.$booking['id'].'.json';$record=zr_read($file);$record['email']=true;zr_write($file,$record);zr_enqueue($config,$booking);check(zr_read($file)['email']===true,'Duplicate erased marker');
     });
     run_test('rate limits are persisted and independent by client',function () use($config) { for($i=0;$i<10;$i++)check(zr_rate_limit($config,'127.0.0.1'),'Blocked too soon');check(!zr_rate_limit($config,'127.0.0.1'),'Limit failed');check(zr_rate_limit($config,'127.0.0.2'),'Other client blocked'); });
+    run_test('MAX webhook booking and wishes are linked and replay-safe',function()use($config){
+        $c=[...$config,'max_token'=>'test','max_admin_chat_id'=>'12'];$replies=[];$sender=function($chat,$text)use(&$replies){$replies[]=$text;};$queue=zr_directory($c,'queue');$before=count(glob($queue.'/*.json')?:[]);$i=0;
+        foreach(['/book','1','20.05.2099','22.05.2099','2','Анна','+79027850002','Согласна']as$text){$event=['update_type'=>'message_created','message'=>['recipient'=>['chat_id'=>12,'chat_type'=>'dialog'],'sender'=>['is_bot'=>false],'body'=>['mid'=>'max-test-'.++$i,'text'=>$text]]];zr_max_handle($c,$event,$sender);}
+        check(count(glob($queue.'/*.json')?:[])===$before+1,'MAX primary booking missing');check(str_contains(end($replies),'пожелания'),'MAX wishes question missing');$sent=count($replies);zr_max_handle($c,$event,$sender);check(count($replies)===$sent,'Duplicate MAX reply');check(count(glob($queue.'/*.json')?:[])===$before+1,'Duplicate MAX booking');
+        $event['message']['body']=['mid'=>'max-test-wishes','text'=>'Нужна детская кроватка'];zr_max_handle($c,$event,$sender);check(count(glob($queue.'/*.json')?:[])===$before+2,'MAX wishes missing');
+        $id='max-'.hash('sha256','12:message:max-test-wishes');$addition=zr_read($queue.'/'.$id.'.json');check($addition['booking']['source']==='max'&&$addition['booking']['kind']==='wishes','MAX source or wishes kind');check(str_contains(zr_text($addition['booking']),'MAX-бот'),'MAX notification source');check(in_array('max',$addition['channels'],true),'MAX delivery channel not captured');
+    });
+    run_test('MAX reply retry does not reprocess the same answer',function()use($config){
+        $c=[...$config,'max_token'=>'test','max_admin_chat_id'=>'13'];$sent=[];$sender=function($chat,$text)use(&$sent){$sent[]=$text;};$event=['update_type'=>'message_created','message'=>['recipient'=>['chat_id'=>13,'chat_type'=>'dialog'],'sender'=>['is_bot'=>false],'body'=>['mid'=>'retry-one','text'=>'/book']]];
+        zr_max_handle($c,$event,$sender);$event['message']['body']=['mid'=>'retry-two','text'=>'1'];try{zr_max_handle($c,$event,function(){throw new RuntimeException('Simulated outage');});throw new RuntimeException('Expected failure');}catch(RuntimeException$error){check($error->getMessage()==='Simulated outage','Unexpected error');}
+        zr_max_handle($c,$event,$sender);check(str_contains(end($sent),'Дата заезда'),'Reply retry advanced step');$count=count($sent);zr_max_handle($c,$event,$sender);check(count($sent)===$count,'Sent duplicate reply');
+    });
+    run_test('MAX pending delivery retries without repeating email or Telegram',function()use($config){
+        $c=[...$config,'data_dir'=>$config['data_dir'].'/max-retry','max_token'=>'test','max_admin_chat_id'=>'12'];$booking=zr_validate(example_booking());zr_enqueue($c,$booking);$email=0;$tg=0;$max=0;$fail=true;
+        $senders=['email'=>function()use(&$email){$email++;},'telegram'=>function()use(&$tg){$tg++;},'max'=>function()use(&$max,&$fail){$max++;if($fail)throw new RuntimeException('MAX outage');}];
+        zr_drain($c,1,$senders);$file=zr_directory($c,'queue').'/'.$booking['id'].'.json';$record=zr_read($file);check($record['email']&&$record['telegram']&&!$record['max'],'Wrong channel state');$record['retryAt']=0;zr_write($file,$record);$fail=false;zr_drain($c,1,$senders);check($email===1&&$tg===1&&$max===2&&!is_file($file),'Channel retry failed');
+    });
     echo $passed.' PHP tests passed.'.PHP_EOL;
 } finally {
     if(is_dir($temporary)) { $files=new RecursiveIteratorIterator(new RecursiveDirectoryIterator($temporary,FilesystemIterator::SKIP_DOTS),RecursiveIteratorIterator::CHILD_FIRST); foreach($files as $file) {if($file->isDir())rmdir($file->getPathname());else unlink($file->getPathname());}rmdir($temporary); }

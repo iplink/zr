@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/app.php';
+function zr_bot_booking_id(string $chatId,int $updateId,array $config): string {
+    return ($config['booking_source']??'telegram')==='max' ? 'max-'.hash('sha256',$chatId.':'.($config['max_event_id']??$updateId)) : 'tg-'.$chatId.'-'.$updateId;
+}
 
 // Pure transition: private storage and webhook delivery are handled by the caller.
 function zr_bot_step(array $session, string $text, string $chatId, int $updateId, array $config): array {
@@ -13,7 +16,7 @@ function zr_bot_step(array $session, string $text, string $chatId, int $updateId
     elseif ($text === '/cancel') { $accepted = ($session['step'] ?? -1) === 7; $session = []; $reply = $accepted ? 'Основная заявка уже принята. Дополнительные пожелания не добавлены.' : 'Заявка отменена. Начать заново: /book'; }
     elseif ($text === '/skip' && ($session['step'] ?? -1) === 7) { $session = []; $reply = 'Хорошо, заявка остаётся без дополнительных пожеланий. Администратор свяжется с вами.'; }
     elseif ($text === '/book') {
-        if (!zr_ready($config)) $reply = 'Приём заявок пока подключается. Позвоните +7 902 785-00-02.';
+        if (!zr_ready($config) || (($config['booking_source']??'telegram')==='max'&&!zr_max_ready($config))) $reply = 'Приём заявок пока подключается. Позвоните +7 902 785-00-02.';
         else { $session = ['step'=>0,'data'=>[]]; $reply = $prompts[0]; }
     } elseif (!isset($session['step'])) $reply = 'Чтобы оставить заявку на отдых, отправьте /book.';
     else {
@@ -40,18 +43,18 @@ function zr_bot_step(array $session, string $text, string $chatId, int $updateId
             else {
                 $completed = true;
                 try {
-                    $data['consent'] = true; $booking = zr_validate($data); $booking['id'] = 'tg-'.$chatId.'-'.$updateId; $booking['source'] = 'telegram';
+                    $data['consent'] = true; $booking = zr_validate($data); $booking['id'] = zr_bot_booking_id($chatId,$updateId,$config); $booking['source'] = $config['booking_source']??'telegram';
                     $session = ['step'=>7,'data'=>$booking]; $reply = "Спасибо! Заявка принята. Администратор свяжется с вами для уточнения стоимости и подтверждения бронирования.\n\nЕсть ли у вас пожелания к отдыху? Напишите их одним сообщением — мы передадим администратору. Если пожеланий нет, отправьте /skip.";
                 } catch (InvalidArgumentException $validationError) { $session = []; $reply = $validationError->getMessage().' Начните заново: /book'; }
             }
         } elseif ($step === 7) {
             if ($text === '' || zr_length($text)>1000 || str_starts_with($text,'/')) $error = 'Напишите пожелания одним сообщением до 1000 символов или отправьте /skip.';
-            else { $completed = true; $booking = [...$data,'id'=>'tg-'.$chatId.'-'.$updateId,'parentId'=>$data['id'],'kind'=>'wishes','comment'=>$text,'createdAt'=>gmdate('c')]; $session = []; $reply = 'Пожелания приняты и добавлены к вашей заявке. Спасибо!'; }
+            else { $completed = true; $booking = [...$data,'id'=>zr_bot_booking_id($chatId,$updateId,$config),'parentId'=>$data['id'],'kind'=>'wishes','comment'=>$text,'createdAt'=>gmdate('c')]; $session = []; $reply = 'Пожелания приняты и добавлены к вашей заявке. Спасибо!'; }
         }
         if ($error !== '') $reply = $error;
         elseif (!$completed) {
             $session['data'] = $data; $session['step'] = $step+1;
-            if ($step+1 === 6) $reply = "Проверьте заявку:\n".ZR_HOUSES[$data['house']]['name']."\nЗаезд: ".zr_format_date($data['checkIn'])."\nВыезд: ".zr_format_date($data['checkOut'])."\nГостей: ".$data['guests']."\nИмя: ".$data['name']."\nТелефон: ".$data['phone']."\n\nДля ответа на заявку эти данные будут отправлены администратору на почту и в Telegram. Подробнее: ".$config['site_url']."/privacy.html\n\nОтправьте «Согласен», если согласны на обработку данных, или /cancel для отмены.";
+            if ($step+1 === 6) $reply = "Проверьте заявку:\n".ZR_HOUSES[$data['house']]['name']."\nЗаезд: ".zr_format_date($data['checkIn'])."\nВыезд: ".zr_format_date($data['checkOut'])."\nГостей: ".$data['guests']."\nИмя: ".$data['name']."\nТелефон: ".$data['phone']."\n\nДля ответа на заявку эти данные будут отправлены администратору на почту и в мессенджеры отеля. Подробнее: ".$config['site_url']."/privacy.html\n\nОтправьте «Согласен», если согласны на обработку данных, или /cancel для отмены.";
             else $reply = $prompts[$step+1];
         }
     }

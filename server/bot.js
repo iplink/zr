@@ -4,16 +4,16 @@ import { randomUUID } from 'node:crypto';
 import { telegram, configured } from './delivery.js';
 const steps = ['house','checkIn','checkOut','guests','name','phone','consent','comment'];
 const wishesPrompt = 'Есть ли у вас пожелания к отдыху? Напишите их одним сообщением — мы передадим администратору. Если пожеланий нет, отправьте /skip.';
-const prompts = {house:'Какой дом выберете?\n1 — Белый дом, 200 м², до 8 гостей\n2 — Уединённый, 100 м², до 4 гостей\n3 — Дом с баней, 65 м², до 4 гостей\n\nОтправьте 1, 2 или 3.',checkIn:'Дата заезда? Формат: ДД.ММ.ГГГГ.',checkOut:'Дата выезда? Формат: ДД.ММ.ГГГГ.',guests:'Сколько будет гостей? Укажите число, включая детей.',name:'Как к вам обращаться?',phone:'Укажите телефон в формате +79027850002.',consent:'Для ответа на заявку имя, телефон, даты и сведения о размещении будут отправлены администратору на почту и в Telegram. Подробнее: https://zaliv-retreat.ru/privacy.html\n\nОтправьте «Согласен», если согласны на обработку этих данных, или /cancel для отмены.'};
+const prompts = {house:'Какой дом выберете?\n1 — Белый дом, 200 м², до 8 гостей\n2 — Уединённый, 100 м², до 4 гостей\n3 — Дом с баней, 65 м², до 4 гостей\n\nОтправьте 1, 2 или 3.',checkIn:'Дата заезда? Формат: ДД.ММ.ГГГГ.',checkOut:'Дата выезда? Формат: ДД.ММ.ГГГГ.',guests:'Сколько будет гостей? Укажите число, включая детей.',name:'Как к вам обращаться?',phone:'Укажите телефон в формате +79027850002.',consent:'Для ответа на заявку имя, телефон, даты и сведения о размещении будут отправлены администратору на почту и в мессенджеры отеля. Подробнее: https://zaliv-retreat.ru/privacy.html\n\nОтправьте «Согласен», если согласны на обработку этих данных, или /cancel для отмены.'};
 export function startBot(outbox, options = {}) {
   const api = options.api || telegram;
   const ready = options.ready || configured;
-  const sessions = new Map(); let stopped = false; let offset = 0;
+  const sessions = options.sessions || new Map(); let stopped = false; let offset = 0;
   const send = (id,text) => api('sendMessage',{chat_id:id,text});
   async function handle(message) {
     if (!message?.text || message.chat.type !== 'private') return;
     const id = message.chat.id; const text = message.text.trim();
-    if (text === '/id') { await send(id,`Ваш chat_id: ${id}\nДля уведомлений администратору укажите его в TELEGRAM_ADMIN_CHAT_ID.`); return; }
+    if (text === '/id') { await send(id,`Ваш chat_id: ${id}\nПередайте этот номер для настройки уведомлений администратору.`); return; }
     if (text === '/cancel') { const accepted = sessions.get(id)?.step === steps.indexOf('comment'); sessions.delete(id); await send(id,accepted ? 'Основная заявка уже принята. Дополнительные пожелания не добавлены.' : 'Заявка отменена. Начать заново: /book'); return; }
     if (text === '/start' || text === '/help') { await send(id,'Добро пожаловать в Залив-Ретрит 🌲\nТри авторских дома в хвойном лесу рядом с Горьковским водохранилищем.\n\n/book — оставить заявку\n/cancel — отменить заполнение\n/id — узнать номер чата\n\nСайт: https://zaliv-retreat.ru\nТелефон: +7 902 785-00-02\nБронирование подтверждает администратор.'); return; }
     if (text === '/book') {
@@ -40,7 +40,7 @@ export function startBot(outbox, options = {}) {
       if (!/^соглас(ен|на)$/i.test(text)) { await send(id,'Для отправки напишите «Согласен» или /cancel для отмены.'); return; }
       session.data.consent = true;
       try {
-        const booking = {...validateBooking(session.data),source:'telegram'};
+        const booking = {...validateBooking(session.data),source:options.source || 'telegram'};
         await outbox.enqueue(booking);
         sessions.set(id,{step:steps.indexOf('comment'),data:booking,updated:Date.now()});
         await send(id,`Спасибо! Заявка принята. Администратор свяжется с вами, чтобы уточнить стоимость и подтвердить бронирование.\n\n${wishesPrompt}`);

@@ -17,6 +17,9 @@ function zr_ready(array $config): bool {
     }
     return true;
 }
+function zr_max_ready(array $config): bool {
+    return !empty($config['max_token']) && (bool)preg_match('/^-?\d+$/D',(string)($config['max_admin_chat_id'] ?? ''));
+}
 function zr_directory(array $config, string $kind): string {
     $base = $config['data_dir'] ?: __DIR__ . '/data';
     $directory = $base . '/' . $kind;
@@ -79,15 +82,15 @@ function zr_validate(array $data, ?string $today = null): array {
     return ['id'=>'web-'.bin2hex(random_bytes(16)), 'house'=>$house, 'checkIn'=>$data['checkIn'], 'checkOut'=>$data['checkOut'], 'guests'=>$guests, 'name'=>$name, 'phone'=>$phone, 'comment'=>$comment, 'consent'=>true, 'createdAt'=>gmdate('c'), 'source'=>'website'];
 }
 function zr_text(array $booking): string {
-    return implode("\n", [($booking['kind'] ?? '') === 'wishes' ? 'Пожелания к заявке · Залив-Ретрит' : 'Новая заявка · Залив-Ретрит', 'Номер заявки: '.($booking['parentId'] ?? $booking['id']), ...(isset($booking['parentId']) ? ['Номер дополнения: '.$booking['id']] : []), 'Источник: '.($booking['source']==='telegram'?'Telegram-бот':'Сайт'), 'Дом: '.ZR_HOUSES[$booking['house']]['name'], 'Заезд: '.zr_format_date($booking['checkIn']), 'Выезд: '.zr_format_date($booking['checkOut']), 'Гостей: '.$booking['guests'], 'Имя: '.$booking['name'], 'Телефон: '.$booking['phone'], 'Пожелания: '.($booking['comment'] ?: '—'), 'Согласие на обработку данных: получено', 'Необходимо связаться с гостем и подтвердить условия.']);
+    return implode("\n", [($booking['kind'] ?? '') === 'wishes' ? 'Пожелания к заявке · Залив-Ретрит' : 'Новая заявка · Залив-Ретрит', 'Номер заявки: '.($booking['parentId'] ?? $booking['id']), ...(isset($booking['parentId']) ? ['Номер дополнения: '.$booking['id']] : []), 'Источник: '.($booking['source']==='max'?'MAX-бот':($booking['source']==='telegram'?'Telegram-бот':'Сайт')), 'Дом: '.ZR_HOUSES[$booking['house']]['name'], 'Заезд: '.zr_format_date($booking['checkIn']), 'Выезд: '.zr_format_date($booking['checkOut']), 'Гостей: '.$booking['guests'], 'Имя: '.$booking['name'], 'Телефон: '.$booking['phone'], 'Пожелания: '.($booking['comment'] ?: '—'), 'Согласие на обработку данных: получено', 'Необходимо связаться с гостем и подтвердить условия.']);
 }
 function zr_enqueue(array $config, array $booking): void {
     if (!zr_ready($config)) throw new RuntimeException('NOT_CONFIGURED');
-    if (!preg_match('/^(web-[a-f0-9]{32}|tg-\d+-\d+)$/D', $booking['id'])) throw new RuntimeException('Invalid booking id');
+    if (!preg_match('/^(web-[a-f0-9]{32}|tg-\d+-\d+|max-[a-f0-9]{64})$/D', $booking['id'])) throw new RuntimeException('Invalid booking id');
     $directory = zr_directory($config, 'queue');
-    zr_locked($directory.'/write.lock', function () use ($directory, $booking) {
+    zr_locked($directory.'/write.lock', function () use ($directory, $booking, $config) {
         $file = $directory.'/'.$booking['id'].'.json';
-        if (!is_file($file)) zr_write($file, ['booking'=>$booking, 'email'=>false, 'telegram'=>false, 'attempts'=>0, 'retryAt'=>0]);
+        if (!is_file($file)) zr_write($file, ['booking'=>$booking, 'channels'=>zr_max_ready($config)?['email','telegram','max']:['email','telegram'], 'maxChatId'=>$config['max_admin_chat_id'] ?? '', 'email'=>false, 'telegram'=>false, 'max'=>false, 'attempts'=>0, 'retryAt'=>0]);
     });
 }
 function zr_email(array $config, array $booking): void {
@@ -126,16 +129,18 @@ function zr_drain(array $config, int $limit = 3, array $senders = []): int {
             $record = zr_read($file);
             if (($record['retryAt'] ?? PHP_INT_MAX) > time()) continue;
             $processed++;
-            foreach (['email','telegram'] as $channel) {
+            $channels = $record['channels'] ?? ['email','telegram'];
+            foreach ($channels as $channel) {
                 if ($record[$channel]) continue;
                 try {
                     if (isset($senders[$channel])) $senders[$channel]($record['booking']);
                     elseif ($channel === 'email') zr_email($config, $record['booking']);
-                    else zr_telegram($config,'sendMessage',['chat_id'=>$config['admin_chat_id'],'text'=>zr_text($record['booking'])]);
+                    elseif ($channel === 'telegram') zr_telegram($config,'sendMessage',['chat_id'=>$config['admin_chat_id'],'text'=>zr_text($record['booking'])]);
+                    else { require_once __DIR__.'/max.php'; zr_max_send($config,(string)$record['maxChatId'],zr_text($record['booking'])); }
                     $record[$channel] = true; zr_write($file,$record);
                 } catch (Throwable $error) { error_log('Zaliv delivery failed: '.$channel.', '.$record['booking']['id']); }
             }
-            if ($record['email'] && $record['telegram']) unlink($file);
+            if (count(array_filter($channels,fn($channel)=>!empty($record[$channel])))===count($channels)) unlink($file);
             else { $record['attempts']++; $record['retryAt'] = time() + min(3600, 30 * (2 ** min(7,$record['attempts']))); zr_write($file,$record); }
         }
     } finally { flock($handle,LOCK_UN); fclose($handle); }

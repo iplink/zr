@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { validateBooking } from './booking.js';
 import { createOutbox, configured } from './delivery.js';
 import { startBot } from './bot.js';
+import { startMaxBot } from './max-bot.js';
 const publicDir = fileURLToPath(new URL('../public/',import.meta.url));
 process.env.EMAIL_TO ||= 'vi-kate@mail.ru';
 const outbox = await createOutbox();
@@ -47,4 +48,5 @@ const server = http.createServer(async (req,res) => {
 server.requestTimeout = 15000; server.headersTimeout = 10000;
 server.listen(Number(process.env.PORT || 3000),process.env.HOST || '127.0.0.1',()=>console.log(`Zaliv-Retreat listening on port ${process.env.PORT || 3000}; booking ${configured() ? 'enabled' : 'needs configuration'}`));
 const stopBot = process.env.TELEGRAM_BOT_TOKEN && process.env.BOT_ENABLED !== 'false' ? startBot(outbox).stop : () => {};
-for (const signal of ['SIGINT','SIGTERM']) process.on(signal,()=>{ stopBot(); outbox.close(); clearInterval(prune); server.close(()=>process.exit(0)); });
+const stopMaxBot = process.env.MAX_BOT_TOKEN && process.env.MAX_ENABLED !== 'false' ? startMaxBot(outbox).stop : () => {};
+for (const signal of ['SIGINT','SIGTERM']) process.on(signal,()=>{ stopBot(); stopMaxBot(); outbox.close(); clearInterval(prune); server.close(()=>process.exit(0)); });

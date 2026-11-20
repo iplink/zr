@@ -19,7 +19,9 @@ if (withCredentials) {
   let secrets;
   try { secrets=JSON.parse(await readFile(secretsPath,'utf8')); }
   catch(error) { if(error.code!=='ENOENT')throw error;secrets={webhook:randomBytes(32).toString('hex'),setup:randomBytes(32).toString('hex')};await writeFile(secretsPath,JSON.stringify(secrets),{mode:0o600}); }
+  if(!secrets.maxWebhook){secrets.maxWebhook=randomBytes(32).toString('hex');await writeFile(secretsPath,JSON.stringify(secrets),{mode:0o600});}
   const config = {site_url:'https://zaliv-retreat.ru',email_to:env.EMAIL_TO,smtp_host:env.SMTP_HOST,smtp_port:Number(env.SMTP_PORT||465),smtp_user:env.SMTP_USER,smtp_password:env.SMTP_PASS,smtp_from:env.SMTP_FROM,telegram_token:env.TELEGRAM_BOT_TOKEN,admin_chat_id:env.TELEGRAM_ADMIN_CHAT_ID,bot_username:'ZalivBookingBot',webhook_secret:secrets.webhook,setup_secret:secrets.setup,data_dir:''};
+  Object.assign(config,{max_token:env.MAX_BOT_TOKEN||'',max_admin_chat_id:env.MAX_ADMIN_CHAT_ID||'',max_username:'se15088019_bot',max_webhook_secret:secrets.maxWebhook,max_ca_file:''});
   if(Object.values(config).some(value=>value===undefined))throw Error('Missing local configuration');
   const phpValue = value=>typeof value==='number'?String(value):`'${String(value).replaceAll('\\','\\\\').replaceAll("'","\\'")}'`;
   await writeFile(path.join(privateDir,'config.php'),`<?php\ndeclare(strict_types=1);\nreturn [\n${Object.entries(config).map(([key,value])=>`    '${key}' => ${phpValue(value)},`).join('\n')}\n];\n`,{mode:0o600});
@@ -29,4 +31,5 @@ if (withCredentials) {
   catch(error) {if(error.code!=='ENOENT')throw error;}
 }
 await cp(path.join(root,'hosting/REG-RU.md'),path.join(output,'ИНСТРУКЦИЯ.md'));
+await cp(path.join(root,'hosting/MAX.md'),path.join(output,'MAX.md'));
 console.log(`Hosting package prepared: ${output}. Credentials: ${withCredentials?'included in PRIVATE folder; do not publish':'not included'}.`);

@@ -13,6 +13,11 @@ return [
     'bot_username' => 'ZalivBookingBot',
     'webhook_secret' => '',
     'setup_secret' => '',
+    'max_token' => '',
+    'max_admin_chat_id' => '',
+    'max_username' => 'se15088019_bot',
+    'max_webhook_secret' => '',
+    'max_ca_file' => '',
     // Leave blank to store requests in this private directory.
     'data_dir' => '',
 ];
