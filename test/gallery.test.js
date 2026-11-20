@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import { readFile, access } from 'node:fs/promises';
 import vm from 'node:vm';
 
-function fixture(directory, total) {
+function fixture(directory, total, cover = 'exterior') {
   const listeners = new Map();
   const nodes = new Map([
-    ['[data-gallery-image]', { src: `/images/${directory}/exterior.webp` }],
+    ['[data-gallery-image]', { src: `/images/${directory}/${cover}.webp` }],
     ['[data-gallery-count]', { textContent: `1 / ${total}` }],
     ['.gallery-controls', { hidden: true }],
   ]);
@@ -21,9 +21,9 @@ function fixture(directory, total) {
   return { listeners, nodes, gallery };
 }
 
-for (const [directory, total] of [['white-house', 6], ['secluded-house', 14]]) {
+for (const [directory, total, cover] of [['white-house', 6, 'exterior'], ['secluded-house', 14, 'exterior'], ['bath-house', 5, 'terrace']]) {
 test(`${directory} gallery navigates real photos, wraps and supports keyboard controls`, async () => {
-  const { listeners, nodes, gallery } = fixture(directory, total);
+  const { listeners, nodes, gallery } = fixture(directory, total, cover);
   const script = await readFile(new URL('../public/gallery.js', import.meta.url), 'utf8');
   vm.runInNewContext(script, { document: { querySelectorAll: () => [gallery] } });
   assert.equal(nodes.get('.gallery-controls').hidden, false);
@@ -61,9 +61,14 @@ test(`${directory} gallery navigates real photos, wraps and supports keyboard co
 test('switching one house does not change the other gallery', async () => {
   const white = fixture('white-house', 6);
   const secluded = fixture('secluded-house', 14);
+  const bath = fixture('bath-house', 5, 'terrace');
   const script = await readFile(new URL('../public/gallery.js', import.meta.url), 'utf8');
-  vm.runInNewContext(script, { document: { querySelectorAll: () => [white.gallery, secluded.gallery] } });
+  vm.runInNewContext(script, { document: { querySelectorAll: () => [white.gallery, secluded.gallery, bath.gallery] } });
   secluded.listeners.get('[data-gallery-next]:click')();
   assert.equal(white.nodes.get('[data-gallery-count]').textContent, '1 / 6');
+  assert.equal(secluded.nodes.get('[data-gallery-count]').textContent, '2 / 14');
+  assert.equal(bath.nodes.get('[data-gallery-count]').textContent, '1 / 5');
+  bath.listeners.get('[data-gallery-next]:click')();
+  assert.equal(bath.nodes.get('[data-gallery-count]').textContent, '2 / 5');
   assert.equal(secluded.nodes.get('[data-gallery-count]').textContent, '2 / 14');
 });
