@@ -8,3 +8,7 @@
 Промпт ImageGen:
 
 > Use case: photorealistic-natural. Asset type: atmospheric landscape hero background for a Russian countryside retreat website. Primary request: a wide panoramic peaceful pine forest near a reservoir, tall elegant Scots pine trunks, a glimpse of still water through trees at the far right, mossy forest floor, soft late afternoon golden sunlight filtering through fine mist. Quiet understated premium editorial landscape photography, natural subdued sage and deep forest green palette, warm light. Composition: wide landscape 3:2, darker uncluttered left half for white website heading, sunlit tree trunks in right half, spacious natural depth. No buildings, no people, no roads, no lettering, no logo, no watermark. This is an atmospheric illustration, not a depiction of a specific real hotel.
+
+- `house-secluded-terrace.webp`: фотография веранды Уединённого дома из объявления Авито № 7261188240, сохранённого и предоставленного владельцем 20 ноября 2026 года. Исходное разрешение 640 × 480; конвертировано в WebP без увеличения и без удаления водяного знака.
+- `max-logo.png`: цветной знак MAX из официального комплекта https://st.max.ru/brandbook/max-colored.zip.
+- `telegram-logo.svg`: векторный значок с бумажным самолётом для ссылки на Telegram.

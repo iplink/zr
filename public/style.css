@@ -3,3 +3,5 @@
 .booking-messengers{display:flex;flex-direction:column;align-items:flex-start;gap:14px;max-width:360px}.booking-messengers p{margin:0;color:#7b8173;font-size:13px;line-height:1.7}
 
 .messenger-link{gap:12px}.messenger-icon{display:block;width:26px;height:26px;flex-shrink:0;object-fit:contain}.contact-call>a.messenger-link{display:flex;align-items:center;gap:10px;width:fit-content;line-height:1.5}.messenger-link:hover .messenger-icon{opacity:.8}
+
+.house-details{margin:16px 0;color:#65705f;font-size:12px;line-height:1.8;border-top:1px solid #d7dace;padding-top:12px}.house-details summary{cursor:pointer;color:#294438;font-size:13px}.house-details summary:focus-visible{outline:3px solid #b4874e;outline-offset:4px}.house-details ul{padding-left:18px;margin:12px 0}.house-details li+li{margin-top:5px}.house-details p{margin:12px 0 0}
