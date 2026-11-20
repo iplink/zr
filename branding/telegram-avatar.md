@@ -1,0 +1,9 @@
+# Аватар Telegram-бота Залив-Ретрит
+
+Файл: `public/images/zaliv-booking-bot-logo.png`.
+
+Кошка отдыхает на толстой сосновой ветке. Молочный и шалфейный цвета на тёмно-зелёном фоне. Квадратная композиция предназначена для круглого аватара **@ZalivBookingBot**. Создано встроенным инструментом ImageGen; это оригинальный растровый файл PNG, без дополнительной обработки.
+
+## Финальный промпт
+
+Use case: logo-brand. Create ONE finished square avatar logo for a Russian countryside retreat booking chatbot. Subject REQUIRED: a peaceful CAT RESTING ON A THICK PINE TREE BRANCH. The cat is clearly recognizable, lying lengthwise atop a sturdy gently curved horizontal pine branch, eyes softly closed, head resting on its front paws, back relaxed, long tail hanging down in a gentle elegant curl. The branch must be thick enough to visibly support the cat, with a few simple Scots pine needle clusters at its ends to make the pine species recognizable. No entire tree needed. Cat and branch form one beautiful cohesive emblem. Style: refined minimal flat vector-style illustration, bold legible silhouettes, graceful clean outlines, simplified natural cat anatomy, quiet premium woodland hospitality branding. Palette: solid deep forest green #263F35 background, warm ivory #F2F0E4 cat and branch shapes with restrained muted sage green detail. Relaxed, cosy, peaceful, welcoming; not childish, not a cartoon mascot face alone. Composition: square 1024x1024, logo centered, all cat ears, tail and pine branch inside central 70% of canvas with generous safe margins for a circular Telegram avatar crop. The cat on the branch must be the dominant readable subject even at small size. No house, no building, no water symbol, no letters, no words, no username, no frame, no watermark, no photo, no mockup, no 3D, no drop shadow. Output a clean standalone brand avatar.
