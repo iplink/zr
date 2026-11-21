@@ -21,7 +21,7 @@ function fixture(directory, total, cover = 'exterior') {
   return { listeners, nodes, gallery };
 }
 
-for (const [directory, total, cover] of [['white-house', 12, 'bicycles'], ['secluded-house', 14, 'exterior'], ['bath-house', 5, 'terrace']]) {
+for (const [directory, total, cover] of [['white-house', 12, 'bicycles'], ['secluded-house', 14, 'exterior'], ['bath-house', 5, 'terrace-retouched']]) {
 test(`${directory} gallery navigates real photos, wraps and supports keyboard controls`, async () => {
   const { listeners, nodes, gallery } = fixture(directory, total, cover);
   const script = await readFile(new URL('../public/gallery.js', import.meta.url), 'utf8');
@@ -61,7 +61,7 @@ test(`${directory} gallery navigates real photos, wraps and supports keyboard co
 test('switching one house does not change the other gallery', async () => {
   const white = fixture('white-house', 12, 'bicycles');
   const secluded = fixture('secluded-house', 14);
-  const bath = fixture('bath-house', 5, 'terrace');
+  const bath = fixture('bath-house', 5, 'terrace-retouched');
   const script = await readFile(new URL('../public/gallery.js', import.meta.url), 'utf8');
   vm.runInNewContext(script, { document: { querySelectorAll: () => [white.gallery, secluded.gallery, bath.gallery] } });
   secluded.listeners.get('[data-gallery-next]:click')();
