@@ -2,6 +2,8 @@ import { cp, mkdir, readFile, writeFile, access } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { buildHousePages } from './build-house-pages.mjs';
+await buildHousePages({ requireComplete: true });
 const root = fileURLToPath(new URL('../',import.meta.url));
 const withCredentials = process.argv.includes('--private');
 const output = path.join(root,'dist',withCredentials?'reg-ru-ready':'reg-ru-public');

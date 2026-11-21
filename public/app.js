@@ -31,6 +31,11 @@ function updateCapacity() {
   if (Number(form.elements.guests.value) > max) form.elements.guests.value = String(max);
 }
 form.elements.house.addEventListener('change', updateCapacity);
+const requestedHouse = new URLSearchParams(window.location.search).get('house');
+if (['white', 'secluded', 'bath'].includes(requestedHouse)) {
+  form.elements.house.value = requestedHouse;
+  updateCapacity();
+}
 document.querySelectorAll('.choose-house').forEach(button => button.addEventListener('click', () => {
   form.elements.house.value = button.dataset.house; updateCapacity();
   document.querySelector('#booking').scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'});

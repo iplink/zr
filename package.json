@@ -3,7 +3,17 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22" },
-  "scripts": { "start": "node --env-file-if-exists=.env server/index.js", "test": "node --test", "check": "node --check server/index.js && node --check server/booking.js && node --check server/bot.js && node --check public/app.js", "build:hosting": "node scripts/build-hosting.mjs" },
-  "dependencies": { "nodemailer": "^7.0.10" }
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server/index.js",
+    "test": "node --test",
+    "check": "node --check server/index.js && node --check server/booking.js && node --check server/bot.js && node --check public/app.js && node --check public/house.js && node --check scripts/build-house-pages.mjs",
+    "build:hosting": "node scripts/build-hosting.mjs",
+    "build:pages": "node scripts/build-house-pages.mjs"
+  },
+  "dependencies": {
+    "nodemailer": "^7.0.10"
+  }
 }

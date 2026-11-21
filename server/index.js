@@ -11,7 +11,7 @@ process.env.EMAIL_TO ||= 'vi-kate@mail.ru';
 const outbox = await createOutbox();
 const attempts = new Map();
 const prune = setInterval(() => { for (const [ip,entry] of attempts) if (entry.until<Date.now()) attempts.delete(ip); },60000); prune.unref();
-const types = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.svg':'image/svg+xml','.jpg':'image/jpeg','.xml':'application/xml','.txt':'text/plain; charset=utf-8'};
+const types = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.svg':'image/svg+xml','.jpg':'image/jpeg','.png':'image/png','.webp':'image/webp','.xml':'application/xml','.txt':'text/plain; charset=utf-8'};
 function json(res,status,data) { res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}); res.end(JSON.stringify(data)); }
 const server = http.createServer(async (req,res) => {
   res.setHeader('X-Content-Type-Options','nosniff'); res.setHeader('X-Frame-Options','DENY'); res.setHeader('Referrer-Policy','strict-origin-when-cross-origin');
