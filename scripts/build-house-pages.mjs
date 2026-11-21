@@ -39,7 +39,7 @@ export async function buildHousePages({ requireComplete = false } = {}) {
   <meta property="og:title" content="${escape(house.name)} — Залив-Ретрит"><meta property="og:type" content="website">
   <meta property="og:image" content="https://zaliv-retreat.ru/images/${house.slug}/${photos[0][0]}.webp">
   <meta property="og:description" content="${escape(house.intro)}">
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/style.css?v=8"><link rel="stylesheet" href="/house.css?v=2">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/style.css?v=9"><link rel="stylesheet" href="/house.css?v=2">
   <script src="/house.js?v=2" type="module"></script>
 </head><body class="house-page">
   <a class="skip" href="#main">Перейти к содержимому</a>${header.replace('href="/#booking"', `href="${booking}"`)}
