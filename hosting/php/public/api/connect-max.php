@@ -8,7 +8,7 @@ try{
     if(!zr_max_ready($config)||!preg_match('/^[A-Za-z0-9_-]{32,256}$/D',$config['max_webhook_secret']??'')||!str_starts_with($config['site_url'],'https://')){zr_json(503,['error'=>'MAX configuration incomplete']);exit;}
     $me=zr_max_api($config,'GET','/me');
     if(empty($me['is_bot'])||(!empty($config['max_username'])&&strcasecmp($me['username']??'',$config['max_username'])!==0)){zr_json(409,['error'=>'MAX bot identity mismatch']);exit;}
-    zr_max_api($config,'PATCH','/me/commands',['commands'=>[['name'=>'start','description'=>'Об отеле'],['name'=>'book','description'=>'Заявка на бронирование'],['name'=>'skip','description'=>'Пропустить пожелания'],['name'=>'cancel','description'=>'Отменить заполнение'],['name'=>'id','description'=>'Номер чата']]]);
+    zr_max_api($config,'PATCH','/me/commands',['commands'=>[['name'=>'start','description'=>'О базе отдыха'],['name'=>'book','description'=>'Заявка на бронирование'],['name'=>'skip','description'=>'Пропустить пожелания'],['name'=>'cancel','description'=>'Отменить заполнение'],['name'=>'id','description'=>'Номер чата']]]);
     $url=rtrim($config['site_url'],'/').'/api/max.php';
     zr_max_api($config,'POST','/subscriptions',['url'=>$url,'update_types'=>['message_created','bot_started'],'secret'=>$config['max_webhook_secret']]);
     zr_json(200,['ok'=>true,'bot'=>$me['username'],'webhook'=>$url]);

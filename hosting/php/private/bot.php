@@ -54,7 +54,7 @@ function zr_bot_step(array $session, string $text, string $chatId, int $updateId
         if ($error !== '') $reply = $error;
         elseif (!$completed) {
             $session['data'] = $data; $session['step'] = $step+1;
-            if ($step+1 === 6) $reply = "Проверьте заявку:\n".ZR_HOUSES[$data['house']]['name']."\nЗаезд: ".zr_format_date($data['checkIn'])."\nВыезд: ".zr_format_date($data['checkOut'])."\nГостей: ".$data['guests']."\nИмя: ".$data['name']."\nТелефон: ".$data['phone']."\n\nДля ответа на заявку эти данные будут отправлены администратору на почту и в мессенджеры отеля. Подробнее: ".$config['site_url']."/privacy.html\n\nОтправьте «Согласен», если согласны на обработку данных, или /cancel для отмены.";
+            if ($step+1 === 6) $reply = "Проверьте заявку:\n".ZR_HOUSES[$data['house']]['name']."\nЗаезд: ".zr_format_date($data['checkIn'])."\nВыезд: ".zr_format_date($data['checkOut'])."\nГостей: ".$data['guests']."\nИмя: ".$data['name']."\nТелефон: ".$data['phone']."\n\nДля ответа на заявку эти данные будут отправлены администратору на почту и в мессенджеры базы отдыха. Подробнее: ".$config['site_url']."/privacy.html\n\nОтправьте «Согласен», если согласны на обработку данных, или /cancel для отмены.";
             else $reply = $prompts[$step+1];
         }
     }

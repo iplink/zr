@@ -12,7 +12,7 @@ try {
     if (strcasecmp($me['username'] ?? '', $config['bot_username']) !== 0) { zr_json(409,['error'=>'Bot name does not match configuration']); exit; }
     $chat = zr_telegram($config,'getChat',['chat_id'=>$config['admin_chat_id']]);
     if (($chat['type'] ?? '') !== 'private') { zr_json(409,['error'=>'Administrator must start a private chat with the bot']); exit; }
-    zr_telegram($config,'setMyCommands',['commands'=>[['command'=>'start','description'=>'Об отеле'],['command'=>'book','description'=>'Заявка на бронирование'],['command'=>'skip','description'=>'Не добавлять пожелания'],['command'=>'cancel','description'=>'Отменить заполнение'],['command'=>'id','description'=>'Узнать номер чата']]]);
+    zr_telegram($config,'setMyCommands',['commands'=>[['command'=>'start','description'=>'О базе отдыха'],['command'=>'book','description'=>'Заявка на бронирование'],['command'=>'skip','description'=>'Не добавлять пожелания'],['command'=>'cancel','description'=>'Отменить заполнение'],['command'=>'id','description'=>'Узнать номер чата']]]);
     zr_telegram($config,'setWebhook',['url'=>rtrim($config['site_url'],'/').'/api/telegram.php','secret_token'=>$config['webhook_secret'],'max_connections'=>1,'allowed_updates'=>['message']]);
     zr_json(200,['ok'=>true,'bot'=>$me['username'],'webhook'=>rtrim($config['site_url'],'/').'/api/telegram.php']);
 } catch (Throwable $error) { error_log('Zaliv bot connection failed'); zr_json(502,['error'=>'Connection failed. Check server access to Telegram and bot settings.']); }

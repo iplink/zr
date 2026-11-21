@@ -32,7 +32,7 @@ export async function buildHousePages({ requireComplete = false } = {}) {
     const html = `<!doctype html>
 <html lang="ru"><head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#233e35"><title>${escape(house.name)} — загородный отель Залив-Ретрит</title>
+  <meta name="theme-color" content="#233e35"><title>${escape(house.name)} — загородная база отдыха Залив-Ретрит</title>
   <meta name="description" content="${escape(house.intro)} ${house.area} м², до ${house.guests} гостей. Фотографии, удобства и заявка на бронирование.">
   ${house.confirmed ? '' : '<meta name="robots" content="noindex">'}
   <link rel="canonical" href="https://zaliv-retreat.ru/houses/${house.slug}.html">
