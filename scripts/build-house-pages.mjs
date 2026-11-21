@@ -2,6 +2,7 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 import { buildFloorPlans } from './build-floor-plans.mjs';
+import { decorateTextLinks } from './text-links.mjs';
 
 const root = new URL('../', import.meta.url);
 const escape = value => String(value ?? 'Уточняется').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
@@ -41,7 +42,7 @@ export async function buildHousePages({ requireComplete = false } = {}) {
   <meta property="og:title" content="${escape(house.name)} — Залив-Ретрит"><meta property="og:type" content="website">
   <meta property="og:image" content="https://zaliv-retreat.ru/images/${house.slug}/${photos[0][0]}.webp">
   <meta property="og:description" content="${escape(house.intro)}">
-  <link rel="icon" href="/favicon.ico?v=cat-1" type="image/vnd.microsoft.icon" sizes="16x16 32x32 48x48"><link rel="icon" href="/favicon-32.png?v=cat-1" type="image/png" sizes="32x32"><link rel="icon" href="/favicon-192.png?v=cat-1" type="image/png" sizes="192x192"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=cat-1" sizes="180x180"><link rel="stylesheet" href="/style.css?v=10"><link rel="stylesheet" href="/house.css?v=4">
+  <link rel="icon" href="/favicon.ico?v=cat-1" type="image/vnd.microsoft.icon" sizes="16x16 32x32 48x48"><link rel="icon" href="/favicon-32.png?v=cat-1" type="image/png" sizes="32x32"><link rel="icon" href="/favicon-192.png?v=cat-1" type="image/png" sizes="192x192"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=cat-1" sizes="180x180"><link rel="stylesheet" href="/style.css?v=links-11"><link rel="stylesheet" href="/house.css?v=5">
   <script src="/house.js?v=2" type="module"></script>
 </head><body class="house-page">
   <a class="skip" href="#main">Перейти к содержимому</a>${header.replace('href="/#booking"', `href="${booking}"`)}
@@ -64,7 +65,7 @@ export async function buildHousePages({ requireComplete = false } = {}) {
   </main>${footer}
   <dialog class="photo-dialog" aria-labelledby="photo-dialog-title"><div class="photo-dialog-head"><h2 id="photo-dialog-title">${escape(house.name)}</h2><button type="button" data-photo-close aria-label="Закрыть фотографии">Закрыть ×</button></div><div class="photo-view"><button type="button" data-photo-prev aria-label="Предыдущая фотография">←</button><img data-photo-full alt=""><button type="button" data-photo-next aria-label="Следующая фотография">→</button></div><div class="photo-caption"><span data-photo-counter aria-live="polite" aria-atomic="true"></span><p data-photo-caption></p></div></dialog>
 </body></html>\n`;
-    await writeFile(new URL(`public/houses/${house.slug}.html`, root), html.replace(/[\t ]+$/gm, ''));
+    await writeFile(new URL(`public/houses/${house.slug}.html`, root), decorateTextLinks(html).replace(/[\t ]+$/gm, ''));
   }
   const urls = ['/', ...houses.filter(house => house.confirmed).map(house => `/houses/${house.slug}.html`)];
   await writeFile(new URL('public/sitemap.xml', root), `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.map(url => `<url><loc>https://zaliv-retreat.ru${url}</loc></url>`).join('')}</urlset>\n`);

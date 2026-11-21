@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
+import { decorateTextLinks } from './text-links.mjs';
 
 // Traced from the owner's technical drawings. Coordinates follow the source
 // sheets; room names are added as they are confirmed by the owner.
@@ -199,11 +200,11 @@ export async function buildFloorPlans() {
   }
   for (const slug of ['white-house','secluded-house','bath-house']) {
     const group=plans.filter(p=>p.house===slug), name=group[0].title;
-    const html = `<!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Планировка — ${name} · Залив-Ретрит</title><meta name="robots" content="noindex"><link rel="icon" href="/favicon-32.png?v=cat-1" type="image/png"><link rel="stylesheet" href="/style.css?v=10"><link rel="stylesheet" href="/plans/plans.css?v=6"></head>
+    const html = decorateTextLinks(`<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Планировка — ${name} · Залив-Ретрит</title><meta name="robots" content="noindex"><link rel="icon" href="/favicon-32.png?v=cat-1" type="image/png"><link rel="stylesheet" href="/style.css?v=links-11"><link rel="stylesheet" href="/plans/plans.css?v=6"></head>
 <body><main class="plan-page"><a class="text-link" href="/houses/${slug}.html">← К описанию дома</a><p class="eyebrow">ЗАЛИВ-РЕТРИТ</p><h1>${name}: планировка</h1><p class="plan-intro">Расположение помещений, окон и дверей.${group.length>1?' Оба этажа показаны отдельно.':''}</p>${group.length>1?`<nav class="plan-nav" aria-label="Этажи">${group.map((p,i)=>`<a class="text-link" href="#floor-${i+1}">${p.floor} ↓</a>`).join('')}</nav>`:''}
 ${group.map((p,i)=>`<section id="floor-${i+1}" class="plan-sheet" aria-labelledby="floor-title-${i+1}"><div class="plan-sheet-heading"><h2 id="floor-title-${i+1}">${p.floor}</h2><a class="text-link" href="/plans/${p.imageFile}" target="_blank" rel="noopener">Открыть крупнее ↗</a></div><a class="plan-image-link" href="/plans/${p.imageFile}" target="_blank" rel="noopener" aria-label="Увеличить планировку: ${p.floor.toLowerCase()}"><img src="/plans/${p.imageFile}" width="1200" height="${svgHeight(p)}" alt="${name}, ${p.floor.toLowerCase()}. Обозначения: ${roomSummary(p)}."></a>${p.labels ? `<dl class="room-legend">${p.rooms.map(([n])=>`<div><dt>${n}</dt><dd>${p.labels[n]}</dd></div>`).join('')}${zoneLegend(p).map(z=>`<div><dt class="kitchen-zone-swatch" aria-hidden="true"></dt><dd>${z.label}</dd></div>`).join('') || ''}${furnitureLegend(p).map(type=>`<div><dt class="furniture-swatch ${type}-swatch" aria-hidden="true"></dt><dd>${furnitureName(type)}</dd></div>`).join('')}</dl>${p.note ? `<p class="plan-note">${p.note}</p>` : ''}` : ''}</section>`).join('')}
-<p class="plan-note">Схемы подготовлены по исходным планам.${group.some(p=>!p.labels) ? ' Названия остальных помещений будут добавлены после уточнения.' : ''}</p><a class="text-link" href="/houses/${slug}.html">Вернуться к описанию дома →</a></main></body></html>\n`;
+<p class="plan-note">Схемы подготовлены по исходным планам.${group.some(p=>!p.labels) ? ' Названия остальных помещений будут добавлены после уточнения.' : ''}</p><a class="text-link" href="/houses/${slug}.html">Вернуться к описанию дома →</a></main></body></html>\n`);
     const pageFile = `${slug}-furnished.${createHash('sha256').update(html).digest('hex').slice(0, 10)}.html`;
     await writeFile(new URL(`plans/${slug}.html`,root), html);
     await writeFile(new URL(`plans/${pageFile}`,root), html);
