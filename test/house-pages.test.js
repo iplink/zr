@@ -50,14 +50,16 @@ test('house booking links preselect the house and enforce its guest capacity', a
   }
 });
 
-test('photo viewer opens the selected photo, navigates, and restores focus on close', async () => {
+for (const extra of [0, 2]) {
+test(`photo viewer opens, navigates and restores focus with ${extra} section photos`, async () => {
   const listeners = new Map();
   const nodes = new Map();
   for (const selector of ['[data-photo-full]', '[data-photo-counter]', '[data-photo-caption]', '[data-photo-close]', '[data-photo-prev]', '[data-photo-next]']) nodes.set(selector, { addEventListener: (name, handler) => listeners.set(`${selector}:${name}`, handler) });
   const dialog = { querySelector: selector => nodes.get(selector), addEventListener: (name, handler) => listeners.set(`dialog:${name}`, handler), showModal() { this.open = true; }, close() { this.open = false; listeners.get('dialog:close')(); } };
-  const links = Array.from({ length: 3 }, (_, index) => ({ dataset: { photoIndex: String(index) }, querySelector: () => ({ getAttribute: () => `/photo-${index}.webp`, alt: `Фото ${index}`, width: 1600, height: 1200 }), addEventListener: (name, handler) => listeners.set(`photo-${index}:${name}`, handler), focus() { this.focused = true; } }));
+  const total = 3 + extra;
+  const links = Array.from({ length: total }, (_, index) => ({ dataset: { photoIndex: String(index) }, querySelector: () => ({ getAttribute: () => `/photo-${index}.webp`, alt: `Фото ${index}`, width: 1600, height: 1200 }), addEventListener: (name, handler) => listeners.set(`photo-${index}:${name}`, handler), focus() { this.focused = true; } }));
   const classes = new Set();
-  const document = { querySelector: selector => selector === '.photo-dialog' ? dialog : {}, querySelectorAll: () => links, body: { classList: { add: name => classes.add(name), remove: name => classes.delete(name) } } };
+  const document = { querySelector: selector => selector === '.photo-dialog' ? dialog : {}, querySelectorAll: selector => selector === '.photo-tile' ? links.slice(0, 3) : selector === '.section-photo' ? links.slice(3) : links, body: { classList: { add: name => classes.add(name), remove: name => classes.delete(name) } } };
   const script = await readFile(new URL('../public/house.js', import.meta.url), 'utf8');
   vm.runInNewContext(script, { document });
   let prevented = false;
@@ -65,12 +67,11 @@ test('photo viewer opens the selected photo, navigates, and restores focus on cl
   assert.equal(prevented, true);
   assert.equal(dialog.open, true);
   assert.equal(nodes.get('[data-photo-full]').src, '/photo-1.webp');
-  assert.equal(nodes.get('[data-photo-counter]').textContent, '2 / 3');
-  listeners.get('[data-photo-next]:click')();
-  listeners.get('[data-photo-next]:click')();
-  assert.equal(nodes.get('[data-photo-counter]').textContent, '1 / 3');
+  assert.equal(nodes.get('[data-photo-counter]').textContent, `2 / ${total}`);
+  for (let i = 1; i < total; i++) listeners.get('[data-photo-next]:click')();
+  assert.equal(nodes.get('[data-photo-counter]').textContent, `1 / ${total}`);
   listeners.get('dialog:keydown')({ key: 'End', preventDefault() {} });
-  assert.equal(nodes.get('[data-photo-counter]').textContent, '3 / 3');
+  assert.equal(nodes.get('[data-photo-counter]').textContent, `${total} / ${total}`);
   listeners.get('[data-photo-close]:click')();
   assert.equal(dialog.open, false);
   assert.equal(classes.size, 0);
@@ -78,4 +79,12 @@ test('photo viewer opens the selected photo, navigates, and restores focus on cl
   prevented = false;
   listeners.get('photo-1:click')({ button: 0, ctrlKey: true, preventDefault() { prevented = true; } });
   assert.equal(prevented, false, 'modified clicks keep native browser behavior');
+  if (extra) {
+    listeners.get(`photo-${total - 1}:click`)({ button: 0, preventDefault() {} });
+    assert.equal(nodes.get('[data-photo-full]').src, `/photo-${total - 1}.webp`);
+    assert.equal(nodes.get('[data-photo-counter]').textContent, `${total} / ${total}`);
+    listeners.get('[data-photo-close]:click')();
+    assert.equal(links[total - 1].focused, true);
+  }
 });
+}

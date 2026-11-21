@@ -1,5 +1,5 @@
 const dialog = document.querySelector('.photo-dialog');
-const photos = [...document.querySelectorAll('.photo-tile')].map(link => {
+const photos = [...document.querySelectorAll('.photo-tile'), ...document.querySelectorAll('.section-photo')].map(link => {
   const image = link.querySelector('img');
   return { src: image.getAttribute('src'), alt: image.alt, width: image.width, height: image.height };
 });
