@@ -61,7 +61,7 @@ export async function buildHousePages({ requireComplete = false } = {}) {
   </main>${footer}
   <dialog class="photo-dialog" aria-labelledby="photo-dialog-title"><div class="photo-dialog-head"><h2 id="photo-dialog-title">${escape(house.name)}</h2><button type="button" data-photo-close aria-label="Закрыть фотографии">Закрыть ×</button></div><div class="photo-view"><button type="button" data-photo-prev aria-label="Предыдущая фотография">←</button><img data-photo-full alt=""><button type="button" data-photo-next aria-label="Следующая фотография">→</button></div><div class="photo-caption"><span data-photo-counter aria-live="polite" aria-atomic="true"></span><p data-photo-caption></p></div></dialog>
 </body></html>\n`;
-    await writeFile(new URL(`public/houses/${house.slug}.html`, root), html);
+    await writeFile(new URL(`public/houses/${house.slug}.html`, root), html.replace(/[\t ]+$/gm, ''));
   }
   const urls = ['/', ...houses.filter(house => house.confirmed).map(house => `/houses/${house.slug}.html`)];
   await writeFile(new URL('public/sitemap.xml', root), `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.map(url => `<url><loc>https://zaliv-retreat.ru${url}</loc></url>`).join('')}</urlset>\n`);
