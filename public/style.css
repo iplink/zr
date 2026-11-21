@@ -15,3 +15,7 @@
 .sauna-preview-heading{margin-bottom:35px}.sauna-preview-heading h2{margin-bottom:0}@media(max-width:800px){.sauna-preview>.wrap{max-width:600px}.sauna-preview-heading{margin-bottom:28px}}
 
 .houses.section{padding-bottom:40px}.sauna-preview.section{padding-top:45px}@media(max-width:800px){.houses.section{padding-bottom:28px}.sauna-preview.section{padding-top:32px}}
+
+/* Text links stay distinct from body copy in their resting state. */
+.text-link,.house-description .house-read-more,.consent a,.privacy a{color:#176180;border-color:currentColor;text-decoration-color:currentColor}.text-link:hover,.house-description:hover .house-read-more,.consent a:hover,.privacy a:hover{color:#10445c;border-color:currentColor}.text-link:focus-visible,.privacy a:focus-visible,.consent a:focus-visible{outline-color:#176180}
+.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}

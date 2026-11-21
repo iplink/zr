@@ -1,11 +1,13 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
+import { buildFloorPlans } from './build-floor-plans.mjs';
 
 const root = new URL('../', import.meta.url);
 const escape = value => String(value ?? 'Уточняется').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 
 export async function buildHousePages({ requireComplete = false } = {}) {
+  const planLinks = await buildFloorPlans();
   const houses = JSON.parse(await readFile(new URL('content/houses.json', root), 'utf8'));
   const required = ['rooms', 'bedrooms', 'beds', 'sleepingPlaces', 'floors', 'style', 'ceiling', 'fireplace', 'price', 'appliances', 'heatedFloor'];
   if (requireComplete && houses.some(house => !house.confirmed || required.some(key => house[key] === null || house[key] === '') || !Number.isFinite(house.price) || house.price <= 0)) throw new Error('Перед публикацией подробных страниц заполните и подтвердите характеристики домов в content/houses.json.');
@@ -39,7 +41,7 @@ export async function buildHousePages({ requireComplete = false } = {}) {
   <meta property="og:title" content="${escape(house.name)} — Залив-Ретрит"><meta property="og:type" content="website">
   <meta property="og:image" content="https://zaliv-retreat.ru/images/${house.slug}/${photos[0][0]}.webp">
   <meta property="og:description" content="${escape(house.intro)}">
-  <link rel="icon" href="/favicon.ico?v=cat-1" type="image/vnd.microsoft.icon" sizes="16x16 32x32 48x48"><link rel="icon" href="/favicon-32.png?v=cat-1" type="image/png" sizes="32x32"><link rel="icon" href="/favicon-192.png?v=cat-1" type="image/png" sizes="192x192"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=cat-1" sizes="180x180"><link rel="stylesheet" href="/style.css?v=9"><link rel="stylesheet" href="/house.css?v=3">
+  <link rel="icon" href="/favicon.ico?v=cat-1" type="image/vnd.microsoft.icon" sizes="16x16 32x32 48x48"><link rel="icon" href="/favicon-32.png?v=cat-1" type="image/png" sizes="32x32"><link rel="icon" href="/favicon-192.png?v=cat-1" type="image/png" sizes="192x192"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=cat-1" sizes="180x180"><link rel="stylesheet" href="/style.css?v=10"><link rel="stylesheet" href="/house.css?v=4">
   <script src="/house.js?v=2" type="module"></script>
 </head><body class="house-page">
   <a class="skip" href="#main">Перейти к содержимому</a>${header.replace('href="/#booking"', `href="${booking}"`)}
@@ -51,7 +53,7 @@ export async function buildHousePages({ requireComplete = false } = {}) {
       <section class="house-section" aria-labelledby="about-house"><p class="eyebrow">ВАШЕ МЕСТО В ЛЕСУ</p><h2 id="about-house">Отдых в своём ритме</h2><p class="house-lead">${escape(house.intro)}</p>${house.description.map(p => `<p>${escape(p)}</p>`).join('')}<div class="house-highlights"><span>${house.area} м²</span><span>До ${house.guests} гостей</span><span>Дом целиком</span></div></section>
       <section class="house-section" aria-labelledby="house-facts"><h2 id="house-facts">О доме</h2><dl class="house-facts">${facts.map(([label, fact]) => `<div><dt>${label}</dt><dd>${escape(fact)}</dd></div>`).join('')}</dl></section>
       ${house.detailsSections?.map(section => `<section class="house-section" aria-labelledby="${escape(section.id)}"><p class="eyebrow">${escape(section.eyebrow)}</p><h2 id="${escape(section.id)}">${escape(section.title)}</h2><p class="house-lead">${escape(section.intro)}</p>${section.photos?.length ? `<div class="section-photo-grid">${section.photos.map(photo => `<figure><a class="section-photo" href="/images/${house.slug}/${photo[0]}.webp" data-photo-index="${photos.length + sectionPhotos.indexOf(photo)}" aria-label="Увеличить: ${escape(photo[1])}">${image(photo, 1)}<span aria-hidden="true">Увеличить ↗</span></a><figcaption>${escape(photo[1])}</figcaption></figure>`).join('')}</div>` : ''}${section.blocks.map(block => `<h3>${escape(block.title)}</h3>${block.paragraphs.map(p => `<p>${escape(p)}</p>`).join('')}`).join('')}</section>`).join('') || ''}
-      ${house.layout?.length ? `<section class="house-section" aria-labelledby="house-layout"><h2 id="house-layout">${escape(house.layoutTitle || 'Планировка по этажам')}</h2>${house.layout.map(floor => `<h3>${escape(floor.title)}</h3><p>${escape(floor.description)}</p>`).join('')}</section>` : ''}
+      ${['white-house', 'secluded-house', 'bath-house'].includes(house.slug) || house.layout?.length ? `<section class="house-section" aria-labelledby="house-layout"><h2 id="house-layout">${escape(house.layoutTitle || 'Планировка дома')}</h2>${['white-house', 'secluded-house', 'bath-house'].includes(house.slug) ? `<a class="text-link floor-plan-link" href="${planLinks[house.slug]}" target="_blank" rel="noopener">Смотреть планировку дома <span aria-hidden="true">↗</span><span class="visually-hidden"> (откроется в новой вкладке)</span></a>` : ''}${house.layout?.map(floor => `<h3>${escape(floor.title)}</h3><p>${escape(floor.description)}</p>`).join('') || ''}</section>` : ''}
       <section class="house-section" aria-labelledby="sleeping"><h2 id="sleeping">Где вы будете спать</h2><p>${escape(house.beds)}</p><p class="muted">Вместимость дома — до ${house.guests} гостей.</p></section>
       <section class="house-section" aria-labelledby="appliances"><h2 id="appliances">Бытовая техника</h2>${appliances}</section>
       <section class="house-section" aria-labelledby="amenities"><h2 id="amenities">Для вашего комфорта</h2>${list(house.amenities)}</section>
